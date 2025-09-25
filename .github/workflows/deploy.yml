@@ -27,9 +27,9 @@ jobs:
           rsync -avz --delete \
             --exclude 'node_modules' --exclude '.git' --exclude '.env' \
             -e "ssh -i deploy_key -o StrictHostKeyChecking=no" \
-            . $USER@$HOST:~/app
+            . $USER@$HOST:~/myapp
 
       - name: Restart AI Archives service
         run: |
           ssh -i deploy_key -o StrictHostKeyChecking=no $USER@$HOST \
-            "sudo systemctl restart aiarchives"
+            "pm2 restart aiarchives"
