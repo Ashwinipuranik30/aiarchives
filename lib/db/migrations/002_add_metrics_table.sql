@@ -9,5 +9,5 @@ CREATE TABLE IF NOT EXISTS conversation_metrics (
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE INDEX IF NOT EXISTS idx_metrics_conversation_id ON metrics(conversation_id);
-CREATE INDEX IF NOT EXISTS idx_metrics_created_at ON metrics(created_at);
+CREATE INDEX IF NOT EXISTS idx_conversation_metrics_conversation_id ON conversation_metrics(conversation_id);
+CREATE INDEX IF NOT EXISTS idx_conversation_metrics_created_at ON conversation_metrics(created_at);
