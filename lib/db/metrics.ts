@@ -2,6 +2,8 @@ import { dbClient } from './client';
 import { CreateMetricInput } from './types';
 
 export async function createMetricRecord(data: CreateMetricInput) {
+  const pool = dbClient.getPool(); // <-- get the Pool
+
   const query = `
     INSERT INTO conversation_metrics
       (conversation_id, scrape_started_at, scrape_ended_at, duration_ms, status, error_message)
@@ -18,6 +20,6 @@ export async function createMetricRecord(data: CreateMetricInput) {
     data.errorMessage ?? null,
   ];
 
-  const result = await dbClient.query(query, values);
+  const result = await pool.query(query, values); // <-- call query on pool
   return result.rows[0];
 }
