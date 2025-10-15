@@ -99,18 +99,23 @@ export async function POST(req: NextRequest) {
     const record = await createConversationRecord(dbInput);
     const dbInsertEnd = performance.now();
 
+    const scrapeEndedAt = new Date();
+    const totalDurationMs = (parseEnd - parseStart) 
+                      + (uploadEnd - uploadStart) 
+                      + (dbInsertEnd - dbInsertStart);
+
     // -------- PHASE 4: Record metrics --------
+   
     await createMetricRecord({
-      conversationId: record.id, // DB-generated conversation ID
-      parseDurationMs: parseEnd - parseStart,
-      uploadDurationMs: uploadEnd - uploadStart,
-      dbInsertDurationMs: dbInsertEnd - dbInsertStart,
+      conversationId: record.id,   // link to conversations table
+      scrapeStartedAt,                         // start timestamp
+      scrapeEndedAt,                           // end timestamp
+      durationMs: totalDurationMs,               // total duration in ms
     });
 
-    const scrapeEndedAt = new Date();
-    const totalDuration = performance.now() - perfStart;
+    
     console.log(
-      `✅ Conversation ${record.id} processed successfully in ${Math.round(totalDuration)} ms`
+      `✅ Conversation ${record.id} processed successfully in ${Math.round(totalDurationMs)} ms`
     );
 
     // Generate permalink
