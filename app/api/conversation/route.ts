@@ -76,16 +76,16 @@ export async function POST(req: NextRequest) {
     }
 
     // -------- PHASE 1: Parse HTML --------
-    const parseStart = performance.now();
+    
     const html = await file.text();
     const conversation = await parseHtmlToConversation(html, model);
-    const parseEnd = performance.now();
+   
 
     // -------- PHASE 2: Upload to S3 --------
-    const uploadStart = performance.now();
+    
     const conversationId = randomUUID();
     const contentKey = await s3Client.storeConversation(conversationId, conversation.content);
-    const uploadEnd = performance.now();
+    
 
     // -------- PHASE 3: Insert into DB --------
     const dbInsertStart = performance.now();
@@ -97,12 +97,10 @@ export async function POST(req: NextRequest) {
       contentKey,
     };
     const record = await createConversationRecord(dbInput);
-    const dbInsertEnd = performance.now();
+    
 
     const scrapeEndedAt = new Date();
-    const totalDurationMs = (parseEnd - parseStart) 
-                      + (uploadEnd - uploadStart) 
-                      + (dbInsertEnd - dbInsertStart);
+    const totalDurationMs = performance.now() - perfStart;
 
     // -------- PHASE 4: Record metrics --------
    
