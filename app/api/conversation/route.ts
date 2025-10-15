@@ -100,7 +100,8 @@ export async function POST(req: NextRequest) {
     
 
     const scrapeEndedAt = new Date();
-    const totalDurationMs = performance.now() - perfStart;
+    const totalDurationMs = Math.round(performance.now() - perfStart);
+
 
     // -------- PHASE 4: Record metrics --------
    
