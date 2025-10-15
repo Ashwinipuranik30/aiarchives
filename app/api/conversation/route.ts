@@ -3,6 +3,8 @@ import { parseHtmlToConversation } from '@/lib/parsers';
 import { dbClient } from '@/lib/db/client';
 import { s3Client } from '@/lib/storage/s3';
 import { CreateConversationInput } from '@/lib/db/types';
+import { performance } from 'perf_hooks';
+import { createMetricRecord } from '@/lib/db/metrics';
 import { createConversationRecord, getAllConversationRecords } from '@/lib/db/conversations';
 import { randomUUID } from 'crypto';
 import { loadConfig } from '@/lib/config';
@@ -59,30 +61,34 @@ export async function OPTIONS() {
  * - 500: { error: string } - Server error
  */
 export async function POST(req: NextRequest) {
+  const scrapeStartedAt = new Date();
+  const perfStart = performance.now();
+
   try {
-    // Initialize services on first request
     await ensureInitialized();
 
     const formData = await req.formData();
     const file = formData.get('htmlDoc');
     const model = formData.get('model')?.toString() ?? 'ChatGPT';
 
-    // Validate input
     if (!(file instanceof Blob)) {
       return NextResponse.json({ error: '`htmlDoc` must be a file field' }, { status: 400 });
     }
 
-    // Parse the conversation from HTML
+    // -------- PHASE 1: Parse HTML --------
+    const parseStart = performance.now();
     const html = await file.text();
     const conversation = await parseHtmlToConversation(html, model);
+    const parseEnd = performance.now();
 
-    // Generate a unique ID for the conversation
+    // -------- PHASE 2: Upload to S3 --------
+    const uploadStart = performance.now();
     const conversationId = randomUUID();
-
-    // Store only the conversation content in S3
     const contentKey = await s3Client.storeConversation(conversationId, conversation.content);
+    const uploadEnd = performance.now();
 
-    // Create the database record with metadata
+    // -------- PHASE 3: Insert into DB --------
+    const dbInsertStart = performance.now();
     const dbInput: CreateConversationInput = {
       model: conversation.model,
       scrapedAt: new Date(conversation.scrapedAt),
@@ -90,10 +96,24 @@ export async function POST(req: NextRequest) {
       views: 0,
       contentKey,
     };
-
     const record = await createConversationRecord(dbInput);
+    const dbInsertEnd = performance.now();
 
-    // Generate the permalink using the database-generated ID
+    // -------- PHASE 4: Record metrics --------
+    await createMetricRecord({
+      conversationId: record.id, // DB-generated conversation ID
+      parseDurationMs: parseEnd - parseStart,
+      uploadDurationMs: uploadEnd - uploadStart,
+      dbInsertDurationMs: dbInsertEnd - dbInsertStart,
+    });
+
+    const scrapeEndedAt = new Date();
+    const totalDuration = performance.now() - perfStart;
+    console.log(
+      `✅ Conversation ${record.id} processed successfully in ${Math.round(totalDuration)} ms`
+    );
+
+    // Generate permalink
     const permalink = `${process.env.NEXT_PUBLIC_BASE_URL}/conversation/${record.id}`;
 
     return NextResponse.json(
@@ -106,7 +126,7 @@ export async function POST(req: NextRequest) {
       }
     );
   } catch (err) {
-    console.error('Error processing conversation:', err);
+    console.error('❌ Error processing conversation:', err);
     return NextResponse.json({ error: 'Internal error, see logs' }, { status: 500 });
   }
 }
