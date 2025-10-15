@@ -21,6 +21,15 @@ export interface ConversationRecord {
   views: number;
 }
 
+export interface CreateMetricInput {
+  conversationId: string;       // or number if your DB uses SERIAL
+  scrapeStartedAt: Date;
+  scrapeEndedAt: Date;
+  durationMs: number;
+  status?: string;              // optional, default 'pending'
+  errorMessage?: string | null; // optional
+}
+
 /**
  * Input type for creating a new conversation record
  */
