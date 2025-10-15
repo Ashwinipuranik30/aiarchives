@@ -88,7 +88,7 @@ export async function POST(req: NextRequest) {
     
 
     // -------- PHASE 3: Insert into DB --------
-    const dbInsertStart = performance.now();
+    
     const dbInput: CreateConversationInput = {
       model: conversation.model,
       scrapedAt: new Date(conversation.scrapedAt),
