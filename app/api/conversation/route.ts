@@ -86,13 +86,19 @@ export async function POST(req: NextRequest) {
     const contentKey = await s3Client.storeConversation(conversationId, conversation.content);
 
     // -------- PHASE 3: Insert into DB --------
+    const scrapedAt = conversation.scrapedAt instanceof Date
+  ? conversation.scrapedAt
+  : new Date(conversation.scrapedAt);
+
     const dbInput: CreateConversationInput = {
       model: conversation.model,
-      scrapedAt: new Date(conversation.scrapedAt),
+      scrapedAt,
       sourceHtmlBytes: conversation.sourceHtmlBytes,
       views: 0,
       contentKey,
     };
+
+
     const record = await createConversationRecord(dbInput);
 
     const scrapeEndedAt = new Date();
